@@ -1,0 +1,79 @@
+# ============================================================
+# EARTHPULSE — .gitignore
+# ============================================================
+
+# --- Python virtual environment ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- Python cache ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+
+# --- Environment variables (secrets) ---
+.env
+.env.local
+.env.*.local
+
+# --- Pytest ---
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+
+# --- Ruff / Linting ---
+.ruff_cache/
+
+# --- Logs ---
+*.log
+logs/
+*.out
+
+# --- Temporary files ---
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+~$*
+
+# --- OS artefacts ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- IDEs ---
+.vscode/settings.json
+.idea/
+*.iml
+
+# --- Build artefacts ---
+dist/
+build/
+*.egg-info/
+*.egg
+site/
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+*.ipynb
+
+# ============================================================
+# NOTE: data/ directory contents are NOT ignored.
+# Raw, processed, metadata, and vector store data are tracked.
+# If individual files grow too large, use Git LFS or list them
+# explicitly below instead of ignoring the whole folder.
+# ============================================================
+# Large raw datasets exceeding GitHub 100MB limit (806 MB geodetic change archive)
+data/raw/glacier_data/data/change.csv
+
+# Local SQLite databases
+*.db
+*.sqlite
+*.sqlite3
