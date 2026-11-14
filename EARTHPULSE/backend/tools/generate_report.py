@@ -13,6 +13,23 @@ from backend.core.logging_config import logger
 # ---------------------------------------------------------------------------
 # Glacier Reports
 # ---------------------------------------------------------------------------
+def _extract_text_content(content: Any) -> str:
+    """Safely extracts text string from LangChain response content (handles str, list of dicts/parts)."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for p in content:
+            if isinstance(p, dict) and "text" in p:
+                parts.append(str(p["text"]))
+            elif hasattr(p, "text"):
+                parts.append(str(p.text))
+            else:
+                parts.append(str(p))
+        return "\n".join(parts)
+    return str(content)
+
+
 def generate_deterministic_report(
     analysis: Dict[str, Any],
     data_quality: Dict[str, Any],
@@ -170,24 +187,24 @@ def generate_ai_report(
                 max_retries=1
             )
             response = llm.invoke(prompt)
-            content = response.content if hasattr(response, "content") else str(response)
-            return {"report": str(content), "status": "ai_generated", "model": model_name}
+            content = _extract_text_content(response.content if hasattr(response, "content") else response)
+            return {"report": content, "status": "ai_generated", "model": model_name}
         except Exception as api_err:
             err_msg = str(api_err).lower()
             if "bidi" in err_msg or "websocket" in err_msg or "bidigeneratecontent" in err_msg:
                 logger.info(
                     f"Requested model '{model_name}' is a bidirectional streaming WebSocket model. "
-                    "Routing REST text generation to 'gemini-2.5-flash'."
+                    "Routing REST text generation to 'gemini-3.6-flash'."
                 )
                 llm_rest = ChatGoogleGenerativeAI(
-                    model="gemini-2.5-flash",
+                    model="gemini-3.6-flash",
                     google_api_key=api_key,
                     temperature=0.2,
                     max_retries=1
                 )
                 response = llm_rest.invoke(prompt)
-                content = response.content if hasattr(response, "content") else str(response)
-                return {"report": str(content), "status": "ai_generated", "model": "gemini-2.5-flash", "requested_model": model_name}
+                content = _extract_text_content(response.content if hasattr(response, "content") else response)
+                return {"report": content, "status": "ai_generated", "model": "gemini-3.6-flash", "requested_model": model_name}
             raise api_err
 
     except Exception as e:
@@ -322,24 +339,24 @@ def generate_ai_modis_report(
                 max_retries=1
             )
             response = llm.invoke(prompt)
-            content = response.content if hasattr(response, "content") else str(response)
-            return {"report": str(content), "status": "ai_generated", "model": model_name}
+            content = _extract_text_content(response.content if hasattr(response, "content") else response)
+            return {"report": content, "status": "ai_generated", "model": model_name}
         except Exception as api_err:
             err_msg = str(api_err).lower()
             if "bidi" in err_msg or "websocket" in err_msg or "bidigeneratecontent" in err_msg:
                 logger.info(
                     f"Requested model '{model_name}' is a bidirectional streaming WebSocket model. "
-                    "Routing REST text generation to 'gemini-2.5-flash'."
+                    "Routing REST text generation to 'gemini-3.6-flash'."
                 )
                 llm_rest = ChatGoogleGenerativeAI(
-                    model="gemini-2.5-flash",
+                    model="gemini-3.6-flash",
                     google_api_key=api_key,
                     temperature=0.2,
                     max_retries=1
                 )
                 response = llm_rest.invoke(prompt)
-                content = response.content if hasattr(response, "content") else str(response)
-                return {"report": str(content), "status": "ai_generated", "model": "gemini-2.5-flash", "requested_model": model_name}
+                content = _extract_text_content(response.content if hasattr(response, "content") else response)
+                return {"report": content, "status": "ai_generated", "model": "gemini-3.6-flash", "requested_model": model_name}
             raise api_err
 
     except Exception as e:

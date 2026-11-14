@@ -21,7 +21,7 @@ class Settings(BaseSettings):
 
     # Gemini / LLM
     GOOGLE_API_KEY: Optional[str] = None
-    GEMINI_MODEL: str = "gemini-2.5-flash"
+    GEMINI_MODEL: str = "gemini-3.6-flash"
 
     # Datasets
     DATA_DIR: Path = PROJECT_ROOT / "data" / "raw" / "glacier_data" / "data"
@@ -47,8 +47,8 @@ class Settings(BaseSettings):
         """Returns a standardized model identifier for langchain-google-genai."""
         model = (self.GEMINI_MODEL or "").strip().strip('"').strip("'")
         if not model:
-            return "gemini-3.8-live"
-        # Standardize spaces to dashes and lowercase (e.g. 'Gemini 3.8 Live' -> 'gemini-3.8-live')
+            return "gemini-3.6-flash"
+        # Standardize spaces to dashes and lowercase (e.g. 'Gemini 3.6 Flash' -> 'gemini-3.6-flash')
         clean = model.lower().replace(" ", "-")
         return clean
 
