@@ -149,13 +149,7 @@ def generate_ai_report(
     try:
         from backend.agent.prompts import GLACIER_REPORT_PROMPT
         model_name = settings.get_clean_gemini_model()
-        llm = ChatGoogleGenerativeAI(
-            model=model_name,
-            google_api_key=api_key,
-            temperature=0.2,
-            max_retries=2
-        )
-
+        
         compact_payload = {
             "query": query,
             "glacier_name": glacier_name,
@@ -168,9 +162,33 @@ def generate_ai_report(
             analysis_data=json.dumps(compact_payload, indent=2, default=str)
         )
 
-        response = llm.invoke(prompt)
-        content = response.content if hasattr(response, "content") else str(response)
-        return {"report": str(content), "status": "ai_generated"}
+        try:
+            llm = ChatGoogleGenerativeAI(
+                model=model_name,
+                google_api_key=api_key,
+                temperature=0.2,
+                max_retries=1
+            )
+            response = llm.invoke(prompt)
+            content = response.content if hasattr(response, "content") else str(response)
+            return {"report": str(content), "status": "ai_generated", "model": model_name}
+        except Exception as api_err:
+            err_msg = str(api_err).lower()
+            if "bidi" in err_msg or "websocket" in err_msg or "bidigeneratecontent" in err_msg:
+                logger.info(
+                    f"Requested model '{model_name}' is a bidirectional streaming WebSocket model. "
+                    "Routing REST text generation to 'gemini-2.5-flash'."
+                )
+                llm_rest = ChatGoogleGenerativeAI(
+                    model="gemini-2.5-flash",
+                    google_api_key=api_key,
+                    temperature=0.2,
+                    max_retries=1
+                )
+                response = llm_rest.invoke(prompt)
+                content = response.content if hasattr(response, "content") else str(response)
+                return {"report": str(content), "status": "ai_generated", "model": "gemini-2.5-flash", "requested_model": model_name}
+            raise api_err
 
     except Exception as e:
         logger.warning(f"Gemini API call failed ({e}); falling back to deterministic report.")
@@ -278,12 +296,6 @@ def generate_ai_modis_report(
     try:
         from backend.agent.prompts import MODIS_REPORT_PROMPT
         model_name = settings.get_clean_gemini_model()
-        llm = ChatGoogleGenerativeAI(
-            model=model_name,
-            google_api_key=api_key,
-            temperature=0.2,
-            max_retries=2
-        )
 
         compact_payload = {
             "query": query,
@@ -302,9 +314,33 @@ def generate_ai_modis_report(
             analysis_data=json.dumps(compact_payload, indent=2, default=str)
         )
 
-        response = llm.invoke(prompt)
-        content = response.content if hasattr(response, "content") else str(response)
-        return {"report": str(content), "status": "ai_generated"}
+        try:
+            llm = ChatGoogleGenerativeAI(
+                model=model_name,
+                google_api_key=api_key,
+                temperature=0.2,
+                max_retries=1
+            )
+            response = llm.invoke(prompt)
+            content = response.content if hasattr(response, "content") else str(response)
+            return {"report": str(content), "status": "ai_generated", "model": model_name}
+        except Exception as api_err:
+            err_msg = str(api_err).lower()
+            if "bidi" in err_msg or "websocket" in err_msg or "bidigeneratecontent" in err_msg:
+                logger.info(
+                    f"Requested model '{model_name}' is a bidirectional streaming WebSocket model. "
+                    "Routing REST text generation to 'gemini-2.5-flash'."
+                )
+                llm_rest = ChatGoogleGenerativeAI(
+                    model="gemini-2.5-flash",
+                    google_api_key=api_key,
+                    temperature=0.2,
+                    max_retries=1
+                )
+                response = llm_rest.invoke(prompt)
+                content = response.content if hasattr(response, "content") else str(response)
+                return {"report": str(content), "status": "ai_generated", "model": "gemini-2.5-flash", "requested_model": model_name}
+            raise api_err
 
     except Exception as e:
         logger.warning(f"Gemini API call failed ({e}); falling back to deterministic MODIS report.")

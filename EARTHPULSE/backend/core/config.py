@@ -44,12 +44,13 @@ class Settings(BaseSettings):
     )
 
     def get_clean_gemini_model(self) -> str:
-        """Returns a valid model identifier for langchain-google-genai."""
+        """Returns a standardized model identifier for langchain-google-genai."""
         model = (self.GEMINI_MODEL or "").strip().strip('"').strip("'")
-        if not model or "Live" in model or "3.8" in model:
-            # Fallback to standard Google GenAI model
-            return "gemini-2.5-flash"
-        return model
+        if not model:
+            return "gemini-3.8-live"
+        # Standardize spaces to dashes and lowercase (e.g. 'Gemini 3.8 Live' -> 'gemini-3.8-live')
+        clean = model.lower().replace(" ", "-")
+        return clean
 
     def get_clean_google_api_key(self) -> Optional[str]:
         if not self.GOOGLE_API_KEY:
