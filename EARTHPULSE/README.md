@@ -9,20 +9,25 @@ Powered by **FastAPI**, **LangGraph**, **Gemini**, **GeoPandas**, and **Rasterio
 ## 📌 Key Capabilities
 
 - **Global Cryospheric Archive**: Indexed access to over **214,600+ glaciers**, spanning mass balance, front variation (advance/retreat), surface area/length changes, and hazard events (surges, avalanches, GLOFs).
-- **LangGraph Multi-Step AI Agent**: An autonomous 10-node intelligence workflow combining:
-  1. Natural language query understanding & intent classification
+- **Global Fire & Thermal Anomaly Monitoring**: Independent multi-year pipeline ingesting **408 NASA FIRMS MODIS Collection 6.1 (C6.1)** active-fire and thermal-anomaly datasets across **210 countries** for 2024 and 2025:
+  - Terra (EOS AM-1) vs. Aqua (EOS PM-1) diurnal comparison
+  - Fire Radiative Power (FRP in MW) and Channel 21/31 brightness temperature profiles
+  - Haversine DBSCAN spatial clustering for persistent hotspot concentration identification
+  - Source code tracking (`0=presumed vegetation fire`, `1=active volcano`, `2=other static land source`, `3=offshore`)
+- **LangGraph Multi-Domain AI Agent**: An autonomous 10-node intelligence workflow combining:
+  1. Natural language query understanding & domain routing (`glacier`, `modis`, or `combined`)
   2. Input & parameter validation
   3. Dynamic dataset selection
-  4. Global data retrieval
-  5. Empirical data quality verification
+  4. Global data retrieval (WGMS + MODIS LRU-cached ingestion)
+  5. Empirical data quality verification & discrepancy flagging
   6. Numerical analysis tool selection
-  7. Deterministic Pandas calculation (cumulative mass loss, retreat rate, ELA/AAR dynamics)
-  8. Scientific result validation
+  7. Deterministic Pandas calculation (mass balance, retreat rates, FRP statistics, hotspot clustering)
+  8. Scientific plausibility & result validation
   9. Dual-mode AI report generation (Google Gemini + deterministic fallback)
   10. Structured JSON response delivery
 - **Geospatial Processing Engine**: Reusable tools built on GeoPandas, Shapely, PyProj, and Rasterio for GeoJSON export, KML/KMZ boundary parsing, DEM differencing, and spectral index calculations (NDVI, NDWI, NDSI).
 - **AtlasX Frontend Ready**: Real-time REST API delivering RFC 7946 compliant GeoJSON `FeatureCollection` payloads for 3D globe and interactive map rendering.
-- **Enterprise-Grade Testing**: 100% passing test suite across retrieval, calculations, agent workflows, geospatial tools, and API endpoints.
+- **Enterprise-Grade Testing**: 100% passing test suite (39 tests: 24 glacier + 15 MODIS) across retrieval, calculations, agent workflows, geospatial tools, and API endpoints.
 
 ---
 
@@ -343,6 +348,32 @@ Content-Type: application/json
   "report": "# Executive Summary\n\nAn analysis of glacier mass balance in Switzerland for 2022-2024 reveals a severe mass loss regime..."
 }
 ```
+
+---
+
+### 6. Global Fire & Thermal Anomaly Monitoring Endpoints
+```http
+GET /api/v1/modis/summary
+GET /api/v1/modis/countries
+GET /api/v1/modis/detections?country=Singapore&year=2025&page=1&page_size=50
+POST /api/v1/modis/analyze
+GET /api/v1/modis/hotspots?country=Singapore&year=2025
+GET /api/v1/modis/geojson?country=Singapore&year=2025
+```
+**Thermal Anomaly Analysis Request Body (`POST /api/v1/modis/analyze`):**
+```json
+{
+  "country": "Singapore",
+  "year": 2025,
+  "start_date": "2025-01-01",
+  "end_date": "2025-12-31",
+  "include_clustering": true,
+  "eps_km": 15.0,
+  "min_samples": 3
+}
+```
+**GeoJSON Export (`GET /api/v1/modis/geojson?country=Singapore&year=2025`):**
+Returns RFC 7946 compliant GeoJSON with Point coordinates `[longitude, latitude]` and properties for FRP, brightness temperature, satellite, acquisition date/time, and source type for direct AtlasX 3D globe visualization.
 
 ---
 

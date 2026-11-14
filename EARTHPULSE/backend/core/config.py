@@ -25,7 +25,13 @@ class Settings(BaseSettings):
 
     # Datasets
     DATA_DIR: Path = PROJECT_ROOT / "data" / "raw" / "glacier_data" / "data"
+    MODIS_DATA_DIR: Path = PROJECT_ROOT / "data" / "raw" / "thermal_anomaly"
     VECTOR_STORE_DIR: Path = PROJECT_ROOT / "data" / "vector_store"
+
+    @property
+    def resolved_modis_data_dir(self) -> Path:
+        """Returns the active MODIS thermal anomaly dataset directory."""
+        return self.MODIS_DATA_DIR
 
     # Default Observation Period
     DEFAULT_START_DATE: str = "2022-01-01"

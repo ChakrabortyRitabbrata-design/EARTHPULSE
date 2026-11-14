@@ -12,6 +12,12 @@ from backend.geospatial.change_detection import (
     detect_polygon_area_change,
     detect_raster_elevation_change,
 )
+from backend.geospatial.modis_processor import (
+    modis_detections_to_geodataframe,
+    modis_detections_to_geojson,
+    modis_hotspots_to_geojson,
+    filter_modis_by_bbox,
+)
 
 __all__ = [
     "parse_kml_or_kmz",
@@ -22,4 +28,8 @@ __all__ = [
     "compute_normalized_spectral_index",
     "detect_polygon_area_change",
     "detect_raster_elevation_change",
+    "modis_detections_to_geodataframe",
+    "modis_detections_to_geojson",
+    "modis_hotspots_to_geojson",
+    "filter_modis_by_bbox",
 ]

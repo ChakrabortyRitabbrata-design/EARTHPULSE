@@ -25,6 +25,7 @@ huggingface_hub==1.33.0
 # --- Data processing ---
 pandas==3.1.1
 numpy==2.5.4
+scikit-learn==1.9.1
 
 # --- Geospatial processing ---
 geopandas==1.2.0

@@ -23,7 +23,19 @@ from backend.tools.analyze_changes import (
     analyze_glacier_events,
     compare_glaciers_mass_balance,
 )
-from backend.tools.generate_report import generate_ai_report
+from backend.tools.retrieve_modis_data import (
+    get_modis_detections,
+    get_available_countries,
+)
+from backend.tools.validate_modis_data import validate_modis_records
+from backend.tools.analyze_modis import (
+    analyze_modis_data,
+    identify_hotspot_clusters,
+)
+from backend.tools.generate_report import (
+    generate_ai_report,
+    generate_ai_modis_report,
+)
 
 
 # Common country names to ISO mapping for query parsing
@@ -50,15 +62,34 @@ COUNTRY_NAME_TO_ISO = {
 # Node 1: Query Understanding
 # ---------------------------------------------------------------------------
 def query_understanding_node(state: GlacierAgentState) -> Dict[str, Any]:
-    """Parses query intent, entities (country, glacier), and timeframes."""
+    """Parses query intent, entities (country, glacier), domain, and timeframes."""
     query = (state.get("query") or "").lower().strip()
     warnings = list(state.get("warnings", []))
 
+    domain = state.get("domain")
     country = state.get("country")
     glacier_name = state.get("glacier_name")
     glacier_id = state.get("glacier_id")
     start_date = state.get("start_date") or settings.DEFAULT_START_DATE
     end_date = state.get("end_date") or settings.DEFAULT_END_DATE
+    modis_year = state.get("modis_year")
+    satellite = state.get("satellite")
+
+    # Detect domain if not explicitly provided
+    is_modis_query = any(k in query for k in [
+        "modis", "fire", "thermal", "frp", "hotspot", "brightness", "terra", "aqua", "radiant", "heat"
+    ])
+    is_glacier_query = any(k in query for k in [
+        "glacier", "ice", "mass balance", "mass-balance", "front variation", "retreat", "advance", "terminus", "ela"
+    ])
+
+    if not domain:
+        if is_modis_query and is_glacier_query:
+            domain = "combined"
+        elif is_modis_query:
+            domain = "modis"
+        else:
+            domain = "glacier"
 
     # Infer country if not explicitly passed
     if not country:
@@ -67,32 +98,66 @@ def query_understanding_node(state: GlacierAgentState) -> Dict[str, Any]:
                 country = code
                 break
 
+    # If domain is MODIS or combined and country is not found or is ISO code, match MODIS country names
+    if domain in ("modis", "combined"):
+        available_modis = get_available_countries()
+        for mc in available_modis:
+            if re.search(r'\b' + re.escape(mc.lower()) + r'\b', query):
+                country = mc
+                break
+
+    # Extract years if present in query
+    year_matches = re.findall(r'\b(19\d{2}|20\d{2})\b', query)
+    if year_matches:
+        if not modis_year:
+            for y_str in year_matches:
+                if y_str in ("2024", "2025"):
+                    modis_year = int(y_str)
+                    break
+        if len(year_matches) >= 2:
+            start_date = f"{year_matches[0]}-01-01"
+            end_date = f"{year_matches[1]}-12-31"
+        elif len(year_matches) == 1:
+            start_date = f"{year_matches[0]}-01-01"
+
+    # Satellite detection
+    if not satellite:
+        if "terra" in query:
+            satellite = "Terra"
+        elif "aqua" in query:
+            satellite = "Aqua"
+
     # Infer intent
     intent = "general"
-    if any(k in query for k in ["mass balance", "mass-balance", "balance", "accumulation", "ablation", "ela", "aar"]):
-        intent = "mass_balance"
-    elif any(k in query for k in ["front", "retreat", "advance", "terminus", "length change", "fluctuation"]):
-        intent = "front_variation"
-    elif any(k in query for k in ["area", "size", "shrink", "extent", "elevation"]):
-        intent = "area_change"
-    elif any(k in query for k in ["event", "surge", "calving", "flood", "avalanche", "hazard"]):
-        intent = "events"
-    elif any(k in query for k in ["compare", "largest", "most", "ranking", "top", "countries"]):
-        intent = "comparison"
-
-    # Extract years if present in query (e.g. 2020 to 2024)
-    year_matches = re.findall(r'\b(19\d{2}|20\d{2})\b', query)
-    if len(year_matches) >= 2:
-        start_date = f"{year_matches[0]}-01-01"
-        end_date = f"{year_matches[1]}-12-31"
-    elif len(year_matches) == 1:
-        start_date = f"{year_matches[0]}-01-01"
+    if domain == "modis":
+        if any(k in query for k in ["cluster", "hotspot", "spatial", "dbscan"]):
+            intent = "hotspots"
+        elif any(k in query for k in ["satellite", "aqua", "terra", "sensor"]):
+            intent = "satellite_comparison"
+        elif any(k in query for k in ["thermal", "frp", "power", "energy"]):
+            intent = "thermal_intensity"
+        else:
+            intent = "general_thermal"
+    else:
+        if any(k in query for k in ["mass balance", "mass-balance", "balance", "accumulation", "ablation", "ela", "aar"]):
+            intent = "mass_balance"
+        elif any(k in query for k in ["front", "retreat", "advance", "terminus", "length change", "fluctuation"]):
+            intent = "front_variation"
+        elif any(k in query for k in ["area", "size", "shrink", "extent", "elevation"]):
+            intent = "area_change"
+        elif any(k in query for k in ["event", "surge", "calving", "flood", "avalanche", "hazard"]):
+            intent = "events"
+        elif any(k in query for k in ["compare", "largest", "most", "ranking", "top", "countries"]):
+            intent = "comparison"
 
     return {
+        "domain": domain,
         "intent": intent,
         "country": country,
         "glacier_name": glacier_name,
         "glacier_id": glacier_id,
+        "modis_year": modis_year,
+        "satellite": satellite,
         "start_date": start_date,
         "end_date": end_date,
         "warnings": warnings,
@@ -107,6 +172,8 @@ def input_validation_node(state: GlacierAgentState) -> Dict[str, Any]:
     """Validates date parameters, country code formats, and bounds."""
     start_date = state.get("start_date")
     end_date = state.get("end_date")
+    modis_year = state.get("modis_year")
+    domain = state.get("domain", "glacier")
     warnings = list(state.get("warnings", []))
 
     try:
@@ -119,9 +186,15 @@ def input_validation_node(state: GlacierAgentState) -> Dict[str, Any]:
                     "error": f"Invalid date range: start_date ({start_date}) is after end_date ({end_date})."
                 }
 
+        if domain in ("modis", "combined") and modis_year and modis_year not in (2024, 2025):
+            return {
+                "status": "validation_error",
+                "error": f"Invalid MODIS observation year: {modis_year}. Supported years are 2024 and 2025."
+            }
+
         country = state.get("country")
-        if country and len(country.strip()) != 2:
-            warnings.append(f"Country filter '{country}' should be a 2-letter ISO code.")
+        if domain == "glacier" and country and len(country.strip()) != 2:
+            warnings.append(f"Glacier country filter '{country}' should be a 2-letter ISO code.")
 
         return {
             "status": "input_validated",
@@ -138,21 +211,27 @@ def input_validation_node(state: GlacierAgentState) -> Dict[str, Any]:
 # Node 3: Dataset Selection
 # ---------------------------------------------------------------------------
 def dataset_selection_node(state: GlacierAgentState) -> Dict[str, Any]:
-    """Selects only the relevant WGMS datasets required to answer the query."""
+    """Selects the relevant WGMS and/or MODIS datasets required to answer the query."""
+    domain = state.get("domain", "glacier")
     intent = state.get("intent", "general")
 
-    if intent == "mass_balance":
-        datasets = ["mass_balance", "glacier"]
-    elif intent == "front_variation":
-        datasets = ["front_variation", "glacier"]
-    elif intent == "area_change":
-        datasets = ["state", "glacier"]
-    elif intent == "events":
-        datasets = ["event", "glacier"]
-    elif intent == "comparison":
-        datasets = ["mass_balance", "front_variation", "glacier"]
-    else:  # "general"
-        datasets = ["mass_balance", "front_variation", "state", "event", "glacier"]
+    if domain == "modis":
+        datasets = ["modis"]
+    elif domain == "combined":
+        datasets = ["mass_balance", "glacier", "modis"]
+    else:
+        if intent == "mass_balance":
+            datasets = ["mass_balance", "glacier"]
+        elif intent == "front_variation":
+            datasets = ["front_variation", "glacier"]
+        elif intent == "area_change":
+            datasets = ["state", "glacier"]
+        elif intent == "events":
+            datasets = ["event", "glacier"]
+        elif intent == "comparison":
+            datasets = ["mass_balance", "front_variation", "glacier"]
+        else:  # "general"
+            datasets = ["mass_balance", "front_variation", "state", "event", "glacier"]
 
     return {
         "selected_datasets": datasets,
@@ -171,12 +250,14 @@ def data_retrieval_node(state: GlacierAgentState) -> Dict[str, Any]:
     glacier_name = state.get("glacier_name")
     start_date = state.get("start_date")
     end_date = state.get("end_date")
+    modis_year = state.get("modis_year")
+    satellite = state.get("satellite")
 
     retrieved = {}
     glacier_ids_matched = []
 
     # If glacier_name is provided, lookup matching glacier_ids first
-    if glacier_name and not glacier_id:
+    if glacier_name and not glacier_id and "glacier" in datasets:
         meta = get_glaciers_metadata(country=country, query=glacier_name, limit=5)
         if meta["items"]:
             glacier_id = meta["items"][0]["id"]
@@ -232,6 +313,18 @@ def data_retrieval_node(state: GlacierAgentState) -> Dict[str, Any]:
         )
         retrieved["event"] = ev_res["records"]
 
+    # 6. MODIS Active Fire / Thermal Anomalies
+    if "modis" in datasets:
+        modis_res = get_modis_detections(
+            country=country,
+            year=modis_year,
+            satellite=satellite,
+            start_date=start_date,
+            end_date=end_date,
+            limit=500
+        )
+        retrieved["modis"] = modis_res["records"]
+
     total_records = sum(len(v) for v in retrieved.values())
     return {
         "retrieved_data": retrieved,
@@ -250,13 +343,23 @@ def data_validation_node(state: GlacierAgentState) -> Dict[str, Any]:
     warnings = list(state.get("warnings", []))
 
     for name, records in retrieved.items():
-        val = validate_dataset_records(records)
-        quality_report[name] = {
-            "record_count": val["record_count"],
-            "issues": val["issues"]
-        }
-        if val["issues"]:
-            warnings.extend([f"[{name}] {iss}" for iss in val["issues"][:2]])
+        if name == "modis":
+            modis_val = validate_modis_records(records)
+            quality_report["modis"] = {
+                "record_count": modis_val["summary"]["total_records"],
+                "valid_records": modis_val["summary"]["valid_records"],
+                "issues": modis_val["quality_issues"]
+            }
+            if modis_val["quality_issues"]:
+                warnings.extend([f"[modis] {iss}" for iss in modis_val["quality_issues"][:2]])
+        else:
+            val = validate_dataset_records(records)
+            quality_report[name] = {
+                "record_count": val["record_count"],
+                "issues": val["issues"]
+            }
+            if val["issues"]:
+                warnings.extend([f"[{name}] {iss}" for iss in val["issues"][:2]])
 
     return {
         "data_quality": quality_report,
@@ -285,6 +388,10 @@ def analysis_tool_selection_node(state: GlacierAgentState) -> Dict[str, Any]:
 
     if retrieved.get("event"):
         tools.append("analyze_glacier_events")
+
+    if retrieved.get("modis"):
+        tools.append("analyze_modis_data")
+        tools.append("cluster_modis_hotspots")
 
     return {
         "analysis_tools": tools,
@@ -316,6 +423,13 @@ def python_numerical_analysis_node(state: GlacierAgentState) -> Dict[str, Any]:
     if "analyze_glacier_events" in tools and retrieved.get("event"):
         results["glacier_events"] = analyze_glacier_events(retrieved["event"])
 
+    if "analyze_modis_data" in tools and retrieved.get("modis"):
+        modis_df = pd.DataFrame(retrieved["modis"])
+        results["modis_analysis"] = analyze_modis_data(modis_df)
+        if "cluster_modis_hotspots" in tools:
+            results["modis_clusters"] = identify_hotspot_clusters(modis_df)
+        results["modis_count"] = len(modis_df)
+
     results["glacier_count"] = len(retrieved.get("glacier", []))
 
     return {
@@ -337,6 +451,13 @@ def result_validation_node(state: GlacierAgentState) -> Dict[str, Any]:
     if mb.get("mean_ela_m_asl") and (mb["mean_ela_m_asl"] < 0 or mb["mean_ela_m_asl"] > 8848):
         warnings.append(f"Anomalous ELA altitude detected: {mb['mean_ela_m_asl']} m a.s.l.")
 
+    # MODIS plausibility checks
+    modis_an = results.get("modis_analysis", {})
+    therm = modis_an.get("thermal_analysis", {})
+    frp_stats = therm.get("frp_stats", {})
+    if frp_stats.get("max_frp_mw") and frp_stats["max_frp_mw"] > 50000:
+        warnings.append(f"Extremely high maximum FRP observed: {frp_stats['max_frp_mw']} MW.")
+
     return {
         "warnings": warnings,
         "status": "results_validated"
@@ -348,24 +469,63 @@ def result_validation_node(state: GlacierAgentState) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 def ai_report_generation_node(state: GlacierAgentState) -> Dict[str, Any]:
     """Synthesizes executive scientific report with Gemini (or deterministic fallback)."""
+    domain = state.get("domain", "glacier")
     analysis = state.get("analysis_results", {})
     data_quality = state.get("data_quality", {})
     query = state.get("query", "")
     glacier_name = state.get("glacier_name")
     country = state.get("country")
 
-    report_result = generate_ai_report(
-        analysis=analysis,
-        data_quality=data_quality,
-        query=query,
-        glacier_name=glacier_name,
-        country=country
-    )
-
-    return {
-        "report": report_result["report"],
-        "status": "report_generated"
-    }
+    if domain == "modis":
+        modis_analysis = analysis.get("modis_analysis", {})
+        # Attach clusters if present
+        if "modis_clusters" in analysis and "hotspot_clusters" not in modis_analysis:
+            modis_analysis["hotspot_clusters"] = analysis["modis_clusters"]
+        report_result = generate_ai_modis_report(
+            analysis=modis_analysis,
+            query=query,
+            country=country
+        )
+        return {
+            "report": report_result["report"],
+            "status": "report_generated"
+        }
+    elif domain == "combined":
+        glacier_report_res = generate_ai_report(
+            analysis=analysis,
+            data_quality=data_quality,
+            query=query,
+            glacier_name=glacier_name,
+            country=country
+        )
+        modis_analysis = analysis.get("modis_analysis", {})
+        modis_report_res = generate_ai_modis_report(
+            analysis=modis_analysis,
+            query=query,
+            country=country
+        )
+        combined_text = (
+            f"# EARTHPULSE INTEGRATED ENVIRONMENTAL OBSERVATION REPORT\n\n"
+            f"{glacier_report_res['report']}\n\n"
+            f"---\n\n"
+            f"{modis_report_res['report']}"
+        )
+        return {
+            "report": combined_text,
+            "status": "report_generated"
+        }
+    else:
+        report_result = generate_ai_report(
+            analysis=analysis,
+            data_quality=data_quality,
+            query=query,
+            glacier_name=glacier_name,
+            country=country
+        )
+        return {
+            "report": report_result["report"],
+            "status": "report_generated"
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -395,6 +555,7 @@ def structured_response_node(state: GlacierAgentState) -> Dict[str, Any]:
 
     structured = {
         "query": state.get("query", ""),
+        "domain": state.get("domain", "glacier"),
         "status": "success",
         "observation_period": {
             "start": state.get("start_date"),
@@ -407,6 +568,9 @@ def structured_response_node(state: GlacierAgentState) -> Dict[str, Any]:
         "report": state.get("report", ""),
         "warnings": state.get("warnings", [])
     }
+
+    if "modis_count" in analysis:
+        structured["modis_detections_analyzed"] = analysis["modis_count"]
 
     return {
         "structured_response": structured,

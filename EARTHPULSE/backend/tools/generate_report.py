@@ -10,6 +10,9 @@ from backend.core.config import settings
 from backend.core.logging_config import logger
 
 
+# ---------------------------------------------------------------------------
+# Glacier Reports
+# ---------------------------------------------------------------------------
 def generate_deterministic_report(
     analysis: Dict[str, Any],
     data_quality: Dict[str, Any],
@@ -22,7 +25,7 @@ def generate_deterministic_report(
     or disabled. Adheres strictly to WGMS data and scientific rules.
     """
     lines = []
-    lines.append("# EARTHPULSE Earth Observation Intelligence Report")
+    lines.append("# EARTHPULSE Cryospheric Intelligence Report")
     lines.append(f"**Query Objective:** {query}")
     if glacier_name:
         lines.append(f"**Target Glacier:** {glacier_name}")
@@ -172,4 +175,138 @@ def generate_ai_report(
     except Exception as e:
         logger.warning(f"Gemini API call failed ({e}); falling back to deterministic report.")
         report = generate_deterministic_report(analysis, data_quality, query, glacier_name, country)
+        return {"report": report, "status": "deterministic_fallback", "llm_error": str(e)}
+
+
+# ---------------------------------------------------------------------------
+# MODIS Thermal Anomaly Reports
+# ---------------------------------------------------------------------------
+def generate_deterministic_modis_report(
+    analysis: Dict[str, Any],
+    query: str,
+    country: Optional[str] = None
+) -> str:
+    """Generates a rigorous deterministic scientific report for MODIS thermal anomalies."""
+    lines = []
+    lines.append("# EARTHPULSE MODIS Thermal Anomaly Intelligence Report")
+    lines.append(f"**Query Objective:** {query}")
+    if country:
+        lines.append(f"**Target Country / Region:** {country}")
+    lines.append("")
+
+    # 1. Executive Summary
+    tot = analysis.get("total_detections", 0)
+    lines.append("## 1. Executive Summary")
+    lines.append(f"A total of **{tot} satellite thermal anomaly detections** were analyzed from NASA FIRMS MODIS observations (Collection 6.1).")
+
+    therm = analysis.get("thermal_analysis", {})
+    frp_stats = therm.get("frp_stats_mw", {})
+    if frp_stats:
+        lines.append(
+            f"- **Radiative Intensity:** Mean FRP of **{frp_stats.get('mean')} MW** (max: {frp_stats.get('max')} MW), "
+            f"with an aggregate radiative output proxy of **{frp_stats.get('total_estimated_frp_mw')} MW**."
+        )
+
+    sat = analysis.get("satellite_comparison", {})
+    if sat.get("satellite_counts"):
+        lines.append(f"- **Sensor Distribution:** {sat['satellite_counts']}")
+
+    clusters = analysis.get("hotspot_clusters", [])
+    lines.append(f"- **Geographic Hotspots:** Identified **{len(clusters)} distinct spatial cluster(s)**.")
+    lines.append("")
+
+    # 2. Temporal Dynamics
+    temp = analysis.get("temporal_analysis", {})
+    lines.append("## 2. Temporal Dynamics")
+    if temp.get("yearly_counts"):
+        lines.append(f"- **Observations by Year:** {temp['yearly_counts']}")
+    if temp.get("yearly_comparison"):
+        yc = temp["yearly_comparison"]
+        lines.append(f"- **2024 vs 2025 Delta:** {yc.get('absolute_difference')} detections ({yc.get('percentage_change')}%)")
+    dn = temp.get("day_night_breakdown", {})
+    if dn:
+        lines.append(f"- **Diurnal Profile:** Day detections: {dn.get('day_detections')}, Night detections: {dn.get('night_detections')} (ratio: {dn.get('day_to_night_ratio')})")
+    lines.append("")
+
+    # 3. Hotspot Clusters
+    lines.append("## 3. Hotspot Cluster Identification (DBSCAN)")
+    if clusters:
+        for idx, cl in enumerate(clusters[:5], 1):
+            lines.append(
+                f"**Cluster #{cl['cluster_id']}**: Centroid at `({cl['centroid_lat']}, {cl['centroid_lon']})` | "
+                f"Detections: {cl['detection_count']} | Total FRP: {cl['total_frp_mw']} MW | "
+                f"Max FRP: {cl['max_frp_mw']} MW | Persistence: {cl['persistence_days']} day(s) | "
+                f"High-Energy: {cl['is_high_frp']}"
+            )
+    else:
+        lines.append("No dense spatial clusters formed at the specified threshold parameters.")
+    lines.append("")
+
+    # 4. Inferred Source Types
+    src_types = therm.get("inferred_source_types", {})
+    if src_types:
+        lines.append("## 4. Inferred Thermal Source Classification")
+        for k, v in src_types.items():
+            lines.append(f"- {k.replace('_', ' ').capitalize()}: {v} detection(s)")
+        lines.append("")
+
+    # 5. Scientific Limitations & Cautions
+    lines.append("## 5. Scientific Limitations & Cautionary Guidance")
+    for c in analysis.get("scientific_cautions", []):
+        lines.append(f"- {c}")
+    lines.append("")
+
+    # 6. Conclusion
+    lines.append("## 6. Conclusion")
+    lines.append("The empirical MODIS observations provide high-fidelity thermal surveillance. Detections reflect elevated radiant heat signatures and must be verified against high-resolution optical imagery or ground truth before definitive incident classification.")
+
+    return "\n".join(lines)
+
+
+def generate_ai_modis_report(
+    analysis: Dict[str, Any],
+    query: str,
+    country: Optional[str] = None
+) -> Dict[str, str]:
+    """Synthesizes MODIS thermal anomaly report via Gemini (or deterministic fallback)."""
+    api_key = settings.get_clean_google_api_key()
+    if not api_key:
+        logger.info("GOOGLE_API_KEY not found; generating deterministic MODIS report.")
+        report = generate_deterministic_modis_report(analysis, query, country)
+        return {"report": report, "status": "deterministic_fallback"}
+
+    try:
+        from backend.agent.prompts import MODIS_REPORT_PROMPT
+        model_name = settings.get_clean_gemini_model()
+        llm = ChatGoogleGenerativeAI(
+            model=model_name,
+            google_api_key=api_key,
+            temperature=0.2,
+            max_retries=2
+        )
+
+        compact_payload = {
+            "query": query,
+            "country": country,
+            "analysis_results": {
+                "total_detections": analysis.get("total_detections"),
+                "geographic": analysis.get("geographic_analysis"),
+                "temporal": analysis.get("temporal_analysis"),
+                "thermal": analysis.get("thermal_analysis"),
+                "satellite_comparison": analysis.get("satellite_comparison"),
+                "top_hotspot_clusters": analysis.get("hotspot_clusters", [])[:5]
+            }
+        }
+
+        prompt = MODIS_REPORT_PROMPT.format(
+            analysis_data=json.dumps(compact_payload, indent=2, default=str)
+        )
+
+        response = llm.invoke(prompt)
+        content = response.content if hasattr(response, "content") else str(response)
+        return {"report": str(content), "status": "ai_generated"}
+
+    except Exception as e:
+        logger.warning(f"Gemini API call failed ({e}); falling back to deterministic MODIS report.")
+        report = generate_deterministic_modis_report(analysis, query, country)
         return {"report": report, "status": "deterministic_fallback", "llm_error": str(e)}

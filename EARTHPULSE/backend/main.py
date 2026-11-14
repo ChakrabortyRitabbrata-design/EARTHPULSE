@@ -9,6 +9,7 @@ from backend.core.logging_config import logger
 from backend.api.monitoring_routes import router as monitoring_router
 from backend.api.agent_routes import router as agent_router
 from backend.api.geospatial_routes import router as geospatial_router
+from backend.api.modis_routes import router as modis_router
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -31,6 +32,7 @@ app.add_middleware(
 app.include_router(monitoring_router)
 app.include_router(agent_router)
 app.include_router(geospatial_router)
+app.include_router(modis_router)
 
 
 @app.get("/")
@@ -38,7 +40,7 @@ def root():
     return {
         "app": settings.APP_NAME,
         "version": "1.0.0",
-        "description": "EARTHPULSE Cryospheric Intelligence API is operational.",
+        "description": "EARTHPULSE Cryospheric Intelligence & Global Fire & Thermal Anomaly Monitoring API is operational.",
         "docs": "/docs",
         "health": "/health"
     }
