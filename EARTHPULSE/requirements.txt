@@ -1,224 +1,44 @@
-# ==============================================================================
-# EARTHPULSE // Satellite & Geospatial Intelligence Platform
-# Python Dependencies & Package Manifest
-# Environment: Python 3.12 (64-bit)
-# Installation: pip install -r requirements.txt
-# ==============================================================================
 
-# ==============================================================================
-# 1. WEB FRAMEWORK & ASYNCHRONOUS BACKEND FOUNDATION
-# ==============================================================================
-# FastAPI: High-performance, asynchronous REST API framework for telemetry routes
 fastapi==0.162.7
-
-# Uvicorn: Ultra-fast ASGI web server with native uvloop, websockets, and httptools
 uvicorn[standard]==0.54.0
-
-# Starlette: Lightweight ASGI toolkit providing core routing, middleware, and request lifecycles
 starlette==1.10.0
-
-# Pydantic: Data validation, schema definition, and type enforcement using Python type annotations
 pydantic==2.14.3
-
-# Pydantic Core: Rust-accelerated validation backend for Pydantic V2
-pydantic_core==2.50.4
-
-# Pydantic Settings: Dotenv and environment variable configuration management
+pydantic-core==2.50.4
 pydantic-settings==2.16.3
-
-# Python-Dotenv: Ingests configuration variables from local .env files into os.environ
 python-dotenv==1.2.4
-
-# Python-Multipart: Streaming multipart/form-data parser for spatial dataset uploads
 python-multipart==0.0.33
-
-# AnyIO: High-level asynchronous concurrency library bridging asyncio and trio backends
 anyio==4.16.0
-
-# WebSockets: Full-duplex WebSocket client/server protocol for real-time live telemetry streaming
 websockets==17.4
-
-# SQLAlchemy: Database abstraction and SQL toolkit for SQLite spatial query caching
 SQLAlchemy==2.1.8
-
-
-# ==============================================================================
-# 2. AI, MULTI-AGENT ORCHESTRATION & LLM SYNTHESIS
-# ==============================================================================
-# Google GenAI: Official Google GenAI SDK powering Gemini 3.6 Flash multimodal synthesis
 google-genai==3.3.0
-
-# LangChain: Composable framework for agent cognitive workflows and tool orchestration
 langchain==1.5.0
-
-# LangChain Core: Core abstractions, Runnables, schema types, and message payloads
 langchain-core==1.8.0
-
-# LangChain Community: Third-party ecosystem tools, community integrations, and data loaders
 langchain-community==0.4.2
-
-# LangGraph: State machine & cyclic multi-agent graph orchestrator for 6-stage telemetry analysis
 langgraph==1.2.22
-
-# LangGraph Checkpoint: State checkpointing, transaction rollback, and memory persistence
 langgraph-checkpoint==4.3.2
-
-# LangChain Google GenAI: ChatGoogleGenerativeAI adapter for LangChain and LangGraph graphs
 langchain-google-genai==4.5.0
-
-# LangChain HuggingFace: Local and cloud Hugging Face model and embedding integrations
 langchain-huggingface==1.2.3
-
-# Hugging Face Hub: Client library for model hub repositories, tokenizers, and weights
-huggingface_hub==1.33.0
-
-# Tokenizers: Fast Byte-Pair Encoding (BPE) and WordPiece tokenization library
+huggingface-hub==1.33.0
 tokenizers==0.23.3
-
-# Tenacity: Retrying library with exponential backoff for external LLM API resilience
 tenacity==9.1.4
-
-
-# ==============================================================================
-# 3. NUMERICAL, TABULAR & SCIENTIFIC DATA PROCESSING
-# ==============================================================================
-# Pandas: High-performance DataFrame analytics for multi-decadal WGMS and MODIS tables
 pandas==3.1.1
-
-# NumPy: Multi-dimensional array structures and vector math for cryospheric calculations
 numpy==2.5.4
-
-# Scikit-Learn: Machine learning library providing DBSCAN spatial clustering for thermal anomalies
 scikit-learn==1.9.1
-
-# SciPy: Scientific algorithms, spatial KD-trees, distance metrics, and statistical distributions
 scipy==1.18.1
-
-# Python-Dateutil: Resilient temporal parsing for diverse satellite acquisition timestamps
 python-dateutil==4.0.0
-
-
-# ==============================================================================
-# 4. GEOSPATIAL ANALYSIS, CARTOGRAPHY & RASTER I/O
-# ==============================================================================
-# GeoPandas: Spatial extensions for Pandas, spatial indexing, bounding boxes, and GeoJSON export
 geopandas==1.2.0
-
-# Shapely: Planar geometry engine for point, linestring, and polygon topological operations
 shapely==2.2.0
-
-# PyProj: Cartographic projections and geodetic coordinate transformations (WGS84 EPSG:4326)
 pyproj==3.8.0
-
-# Rasterio: Geospatial raster dataset I/O and multi-band satellite imagery handling
 rasterio==1.5.2
-
-# PyOgrio: High-throughput vector I/O library powered by native C/C++ GDAL/OGR
 pyogrio==0.13.0
-
-# Affine: Matrices and affine geometric transforms for georeferenced raster coordinate grids
 affine==3.0.1
-
-
-# ==============================================================================
-# 5. NETWORKING, HTTP CLIENTS & SECURITY
-# ==============================================================================
-# HTTPX: Asynchronous and synchronous HTTP client with HTTP/2 and SSL connection pooling
 httpx==0.28.1
-
-# HTTPCore: Low-level transport layer and socket manager powering HTTPX
 httpcore==1.0.9
-
-# Requests: Standard synchronous HTTP client for external telemetry fetching
 requests==2.34.2
-
-# Cryptography: Cryptographic primitives for secure SSL/TLS handshakes and token verification
 cryptography==50.0.2
-
-# Certifi: Mozilla curated root Certificate Authority bundle for verified HTTPS requests
 certifi==2026.10.23
-
-
-# ==============================================================================
-# 6. TESTING, CODE QUALITY & RUNTIME UTILITIES
-# ==============================================================================
-# PyTest: Testing framework for backend endpoints, retrieval tools, and LangGraph pipelines
 pytest==9.2.0
-
-# Ruff: Lightning-fast Rust-based Python linter and code formatter
 ruff==0.17.5
-
-# WatchFiles: OS file-watcher with native Rust notify backend for FastAPI hot-reloading
 watchfiles==1.3.0
-
-# TQDM: Extensible CLI progress bar for data ingestion and vector indexing
-tqdm==4.70.1
-
-# Click: Composable CLI toolkit powering Uvicorn and custom maintenance scripts
+tqdm==4.70.0
 click==8.5.1
-
-
-# ==============================================================================
-# 7. FRONTEND FRAMEWORKS, LIBRARIES & TOOLCHAIN (Node.js / npm)
-# Manifest: frontend/Globe+Dashboard/package.json
-# Node Environment: Node.js >= 18.0.0, npm >= 9.0.0
-# Installation Command: cd "frontend/Globe+Dashboard" && npm install
-# ==============================================================================
-#
-# --- CORE APPLICATION FRAMEWORK & RUNTIME ---
-# React (v18.3.1):
-#   Declarative component framework driving mission control state, telemetry reactivity,
-#   and real-time user interaction workflows across globe and analysis views.
-# react==18.3.1
-#
-# React-DOM (v18.3.1):
-#   Browser DOM renderer for React components, powering virtual DOM reconciliation.
-# react-dom==18.3.1
-#
-# --- 3D GEOSPATIAL VIRTUAL GLOBE ENGINE ---
-# CesiumJS (v1.147.0 / ^1.124.0):
-#   World-class WebGL-powered 3D virtual globe engine. Renders photorealistic terrain,
-#   WGS84 ellipsoidal coordinates, satellite imagery base maps, atmospheric scattering,
-#   camera fly-to trajectories, and ground-clamped GeoJSON vector overlays for cryospheric
-#   and thermal telemetry. Implemented in frontend/Globe+Dashboard/src/globe/EarthGlobe.jsx.
-# cesium==1.147.0
-#
-# Vite Plugin Cesium (v1.2.23 / ^1.2.22):
-#   Vite build plugin automatically configuring Cesium static assets, Web Workers,
-#   third-party widgets, and dynamic base URL resolution for production bundles.
-# vite-plugin-cesium==1.2.23
-#
-# --- SCIENTIFIC DATA VISUALIZATION & ICONOGRAPHY ---
-# Recharts (v3.10.1):
-#   Declarative SVG charting library for scientific telemetry: multi-decadal cumulative
-#   mass balance curves, terminus retreat fluctuations, and radiant fire power distributions.
-# recharts==3.10.1
-#
-# Lucide-React (v0.460.0):
-#   Precision iconographic symbol library providing telemetry status indicators,
-#   query filter glyphs, satellite indicators, and mission control buttons.
-# lucide-react==0.460.0
-#
-# --- FRONTEND BUILD SYSTEM & STYLING ENGINE ---
-# Vite (v5.4.21 / ^5.4.11):
-#   High-performance next-generation frontend build engine with native ES module HMR
-#   and optimized Rollup production bundling.
-# vite==5.4.21
-#
-# @vitejs/plugin-react (v4.7.0 / ^4.3.3):
-#   Official Vite plugin providing Babel/Fast Refresh JSX transforms for React.
-# @vitejs/plugin-react==4.7.0
-#
-# Tailwind CSS (v3.4.19):
-#   Utility-first CSS styling engine powering the NASA-inspired dark telemetry HUD,
-#   glassmorphism backdrop filters, responsive grid splits, and status badges.
-# tailwindcss==3.4.19
-#
-# PostCSS (v8.5.33) & Autoprefixer (v10.6.2):
-#   CSS AST transformer and automated vendor prefixer ensuring cross-browser CSS fidelity.
-# postcss==8.5.33
-# autoprefixer==10.6.2
-#
-# @types/react (v18.3.31) & @types/react-dom (v18.3.7):
-#   TypeScript definition typings for IDE code navigation and autocomplete verification.
-
