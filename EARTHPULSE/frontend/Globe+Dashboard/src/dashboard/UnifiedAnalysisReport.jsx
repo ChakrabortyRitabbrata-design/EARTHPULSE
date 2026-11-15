@@ -21,6 +21,7 @@ import {
   Maximize2,
   BarChart3,
   ShieldCheck,
+  Play,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -160,6 +161,8 @@ export default function UnifiedAnalysisReport({
   activeModule = 'glaciers',
   isWorkflowRunning = false,
   workflowProgress = {},
+  hasRunAnalysis = false,
+  onRunAnalysis,
   // Glacier Data
   glacierList = [],
   glacierTotal = 0,
@@ -363,7 +366,72 @@ export default function UnifiedAnalysisReport({
         />
       )}
 
-      {/* 2. NUMERICAL KPI INDICATOR CARDS (STRICTLY SEGREGATED BY ACTIVE MODULE) */}
+      {/* 2. NUMERICAL KPI INDICATOR CARDS OR INITIAL STANDBY STATE */}
+      {!hasRunAnalysis && !isWorkflowRunning ? (
+        <div className="bg-slate-900/60 border border-dashed border-slate-800 rounded-xl p-8 text-center space-y-6 my-2 shadow-lg">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-950 to-slate-900 border border-cyan-800/60 flex items-center justify-center mx-auto shadow-lg shadow-cyan-900/20">
+            {isGlacier ? (
+              <Mountain className="w-8 h-8 text-cyan-400" />
+            ) : (
+              <Flame className="w-8 h-8 text-amber-400" />
+            )}
+          </div>
+
+          <div className="max-w-md mx-auto space-y-2">
+            <div className="text-xs font-mono font-bold tracking-widest uppercase text-cyan-400">
+              Telemetry Standby Mode
+            </div>
+            <h3 className="text-lg font-bold text-white font-sans">
+              {isGlacier ? 'Glacier Intelligence Workspace' : 'Thermal Anomaly Intelligence Workspace'}
+            </h3>
+            <p className="text-xs text-slate-400 leading-relaxed font-sans">
+              {isGlacier
+                ? 'No cryospheric analysis initiated yet. Configure your desired region, glacier query, or WGMS ID in the Query Builder and click "Run Glacier Analysis" to compute multi-decadal mass-balance loss rates, terminus variations, and LangGraph AI synthesis.'
+                : 'No thermal anomaly analysis initiated yet. Configure your target country, dataset year, and satellite sensor in the Query Builder and click "Run Thermal Analysis" to process MODIS observations.'}
+            </p>
+          </div>
+
+          {/* Action Button */}
+          <div>
+            <button
+              onClick={onRunAnalysis}
+              className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold font-mono tracking-wider text-white shadow-lg transition-all ${
+                isGlacier
+                  ? 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 shadow-cyan-900/40'
+                  : 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 shadow-amber-900/40'
+              }`}
+            >
+              <Play className="w-4 h-4 fill-current" />
+              <span>{isGlacier ? 'RUN GLACIER ANALYSIS' : 'RUN THERMAL ANALYSIS'}</span>
+            </button>
+          </div>
+
+          {/* 4 Feature Preview Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-4 border-t border-slate-800/80 text-left">
+            <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80">
+              <span className="text-[10px] font-mono text-cyan-400 font-semibold block mb-1">01 // KPIS</span>
+              <span className="text-xs font-medium text-slate-300 block">Mass Loss Rates</span>
+              <span className="text-[10px] text-slate-500">Decadal deficit percentage</span>
+            </div>
+            <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80">
+              <span className="text-[10px] font-mono text-cyan-400 font-semibold block mb-1">02 // SERIES</span>
+              <span className="text-xs font-medium text-slate-300 block">Annual Mass Balance</span>
+              <span className="text-[10px] text-slate-500">1950 – 2024 stake records</span>
+            </div>
+            <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80">
+              <span className="text-[10px] font-mono text-cyan-400 font-semibold block mb-1">03 // TERMINUS</span>
+              <span className="text-xs font-medium text-slate-300 block">Front Variations</span>
+              <span className="text-[10px] text-slate-500">Advance vs retreat meters</span>
+            </div>
+            <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80">
+              <span className="text-[10px] font-mono text-cyan-400 font-semibold block mb-1">04 // SYNTHESIS</span>
+              <span className="text-xs font-medium text-slate-300 block">Gemini 3.6 Flash</span>
+              <span className="text-[10px] text-slate-500">Autonomous scientific report</span>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
       <section aria-label="Key Performance Indicators">
         <div className="flex items-center justify-between mb-2">
           <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold flex items-center gap-1.5">
@@ -1215,6 +1283,8 @@ export default function UnifiedAnalysisReport({
           />
         )}
       </section>
+        </>
+      )}
     </div>
   );
 }

@@ -40,6 +40,7 @@ export function useEarthpulseData() {
   const [glacierDetail, setGlacierDetail] = useState(null);
   const [loadingGlacierDetail, setLoadingGlacierDetail] = useState(false);
   const [regionalGlacierStats, setRegionalGlacierStats] = useState(null);
+  const [hasRunGlacierAnalysis, setHasRunGlacierAnalysis] = useState(false);
 
   // --- THERMAL ANOMALY STATE ---
   const [thermalFilters, setThermalFilters] = useState({
@@ -62,6 +63,7 @@ export function useEarthpulseData() {
   const [thermalGeoJSON, setThermalGeoJSON] = useState(null);
   const [selectedThermal, setSelectedThermal] = useState(null);
   const [thermalAnalysis, setThermalAnalysis] = useState(null);
+  const [hasRunThermalAnalysis, setHasRunThermalAnalysis] = useState(false);
 
   // --- AI REPORT STATE ---
   const [aiReport, setAiReport] = useState(null);
@@ -115,6 +117,7 @@ export function useEarthpulseData() {
   // --- 1. UNIFIED GLACIER ANALYSIS PIPELINE ---
   const runGlacierAnalysisUnified = useCallback(
     async (overrideFilters, targetPage = 1, targetGlacierId = null) => {
+      setHasRunGlacierAnalysis(true);
       setIsWorkflowRunning(true);
       setError(null);
       startWorkflowTimer();
@@ -384,6 +387,7 @@ export function useEarthpulseData() {
   // --- 2. UNIFIED THERMAL ANALYSIS PIPELINE ---
   const runThermalAnalysisUnified = useCallback(
     async (overrideFilters, targetPage = 1) => {
+      setHasRunThermalAnalysis(true);
       setIsWorkflowRunning(true);
       setError(null);
       startWorkflowTimer();
@@ -533,14 +537,8 @@ export function useEarthpulseData() {
     [thermalFilters, thermalPageSize]
   );
 
-  // Initial Data Load on Mount & Module Change
-  useEffect(() => {
-    if (activeModule === 'glaciers') {
-      runGlacierAnalysisUnified(glacierFilters, 1);
-    } else if (activeModule === 'thermal') {
-      runThermalAnalysisUnified(thermalFilters, 1);
-    }
-  }, [activeModule]);
+  // Standby initial state: Analysis only runs when user explicitly initiates it via Run Analysis button
+  // (Auto-run on mount removed per user specification)
 
   // Handle Glacier Selection
   const handleSelectGlacier = useCallback(async (glacier, updateUnified = true) => {
@@ -648,11 +646,21 @@ export function useEarthpulseData() {
     regionalGlacierStats,
     loadingGlacierDetail,
     handleSelectGlacier,
+    hasRunGlacierAnalysis,
+    hasRunThermalAnalysis,
+    hasRunAnalysis: activeModule === 'glaciers' ? hasRunGlacierAnalysis : hasRunThermalAnalysis,
     runGlacierQuery: () => runGlacierAnalysisUnified(glacierFilters, 1),
     resetGlacierFilters: () => {
       const def = { country: 'CH', query: '', glacierId: '', startDate: '1950-01-01', endDate: '2025-12-31', analysisType: 'all' };
       setGlacierFilters(def);
-      runGlacierAnalysisUnified(def, 1);
+      setHasRunGlacierAnalysis(false);
+      setGlacierList([]);
+      setGlacierTotal(0);
+      setSelectedGlacier(null);
+      setGlacierDetail(null);
+      setRegionalGlacierStats(null);
+      setAiReport(null);
+      setSelectedFeature(null);
     },
 
     // Thermal Module
@@ -674,7 +682,13 @@ export function useEarthpulseData() {
     resetThermalFilters: () => {
       const def = { country: 'Singapore', year: 2025, startDate: '', endDate: '', satellite: '', daynight: '', minConfidence: 0, minFRP: '', includeClustering: false, epsKm: 15, minSamples: 3 };
       setThermalFilters(def);
-      runThermalAnalysisUnified(def, 1);
+      setHasRunThermalAnalysis(false);
+      setThermalDetections([]);
+      setThermalTotal(0);
+      setSelectedThermal(null);
+      setThermalAnalysis(null);
+      setAiReport(null);
+      setSelectedFeature(null);
     },
 
     // Unified Cesium Selection & Navigation

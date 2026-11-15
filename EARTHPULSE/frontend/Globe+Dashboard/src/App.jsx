@@ -63,12 +63,13 @@ export default function App() {
     // AI Intelligence
     aiReport,
     refreshAll,
+    hasRunAnalysis,
   } = useEarthpulseData();
 
   // Layer visibility state
   const [glacierLayerVisible, setGlacierLayerVisible] = useState(true);
   const [thermalLayerVisible, setThermalLayerVisible] = useState(true);
-  const [showQueryBuilder, setShowQueryBuilder] = useState(false);
+  const [showQueryBuilder, setShowQueryBuilder] = useState(true);
 
   // 4K Orbital Scrollytelling Landing Page State
   const [showLanding, setShowLanding] = useState(() => {
@@ -226,6 +227,8 @@ export default function App() {
               activeModule={activeModule}
               isWorkflowRunning={isWorkflowRunning}
               workflowProgress={workflowProgress}
+              hasRunAnalysis={hasRunAnalysis}
+              onRunAnalysis={activeModule === 'glaciers' ? runGlacierQuery : runThermalQuery}
               // Glacier Data
               glacierList={glacierList}
               glacierTotal={glacierTotal}

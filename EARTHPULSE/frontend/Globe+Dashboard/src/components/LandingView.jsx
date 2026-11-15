@@ -12,6 +12,7 @@ export default function LandingView({ onEnterMission }) {
   const [loadedCount, setLoadedCount] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
   const [autoPlay, setAutoPlay] = useState(false);
+  const [currentFrameNum, setCurrentFrameNum] = useState(0);
 
   const canvasRef = useRef(null);
   const warpCanvasRef = useRef(null);
@@ -74,7 +75,7 @@ export default function LandingView({ onEnterMission }) {
     };
   }, []);
 
-  // 2. High-speed 4K Canvas and LERP Animation Loop
+  // 2. High-speed 4K Canvas, LERP Scroll Physics, and Auto-Scroll Engine
   useEffect(() => {
     if (!isLoaded) return;
 
@@ -105,16 +106,41 @@ export default function LandingView({ onEnterMission }) {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas, { passive: true });
 
-    // Scroll Handler
-    const handleScroll = () => {
-      if (autoPlayRef.current) return;
-      const scrollY = window.scrollY;
-      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-      const progress = maxScroll > 0 ? Math.min(Math.max(scrollY / maxScroll, 0), 1) : 0;
-      targetFrameRef.current = progress * (TOTAL_FRAMES - 1);
+    // --- Interactive Mouse Wheel & Trackpad Scroll Scrubber ---
+    const handleWheel = (e) => {
+      // Manual scroll interrupts auto-scroll so user has full control
+      if (autoPlayRef.current) {
+        autoPlayRef.current = false;
+        setAutoPlay(false);
+      }
+      const delta = (e.deltaY || 0) * 0.055;
+      targetFrameRef.current = Math.min(Math.max(targetFrameRef.current + delta, 0), TOTAL_FRAMES - 1);
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    // --- Touch Swipe Scrubber for Mobile & Tablets ---
+    let touchStartY = 0;
+    const handleTouchStart = (e) => {
+      if (e.touches && e.touches[0]) {
+        touchStartY = e.touches[0].clientY;
+      }
+    };
+
+    const handleTouchMove = (e) => {
+      if (autoPlayRef.current) {
+        autoPlayRef.current = false;
+        setAutoPlay(false);
+      }
+      if (e.touches && e.touches[0]) {
+        const touchY = e.touches[0].clientY;
+        const delta = (touchStartY - touchY) * 0.18;
+        touchStartY = touchY;
+        targetFrameRef.current = Math.min(Math.max(targetFrameRef.current + delta, 0), TOTAL_FRAMES - 1);
+      }
+    };
+
+    window.addEventListener('wheel', handleWheel, { passive: true });
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
 
     // Draw Image with Aspect-Ratio "Cover" Math
     const drawImageProp = (ctx, img, x, y, w, h) => {
@@ -146,16 +172,16 @@ export default function LandingView({ onEnterMission }) {
     };
 
     // Render loop with LERP smoothing
+    let lastReportFrame = 0;
     const render = () => {
+      // Auto-Scroll feature: smoothly advances through frames
       if (autoPlayRef.current) {
-        targetFrameRef.current += 0.45;
+        targetFrameRef.current += 0.35;
         if (targetFrameRef.current >= TOTAL_FRAMES - 1) {
           targetFrameRef.current = TOTAL_FRAMES - 1;
           autoPlayRef.current = false;
           setAutoPlay(false);
         }
-        const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-        window.scrollTo(0, (targetFrameRef.current / (TOTAL_FRAMES - 1)) * maxScroll);
       }
 
       // LERP (0.12 damping factor)
@@ -165,6 +191,11 @@ export default function LandingView({ onEnterMission }) {
 
       if (img && img.complete && img.naturalWidth > 0) {
         drawImageProp(ctx, img, 0, 0, canvas.width, canvas.height);
+      }
+
+      if (Math.abs(frameIndex - lastReportFrame) >= 2) {
+        lastReportFrame = frameIndex;
+        setCurrentFrameNum(frameIndex);
       }
 
       // Telemetry updates
@@ -177,7 +208,7 @@ export default function LandingView({ onEnterMission }) {
         trackerPercentRef.current.textContent = `${Math.round(progress * 100)}%`;
       }
 
-      // Telemetry stages
+      // Telemetry stages: Deep Space (36k km) -> Mesosphere (20k km) -> Stratosphere (12 km)
       if (progress < 0.35) {
         if (teleStageRef.current) teleStageRef.current.textContent = 'DEEP SPACE';
         const alt = Math.round(36000 - (progress / 0.35) * 16000);
@@ -210,9 +241,9 @@ export default function LandingView({ onEnterMission }) {
       const secs = String(Math.floor((elapsed % 60000) / 1000)).padStart(2, '0');
       if (missionTimeRef.current) missionTimeRef.current.textContent = `T+${hrs}:${mins}:${secs}`;
 
-      // HERO CENTER BUTTON REVEAL CONDITION (When scroll progress >= 93% or frame >= 114)
+      // HERO CENTER BUTTON REVEAL CONDITION (When scroll progress >= 92% or frame >= 112)
       if (heroRef.current) {
-        if (progress >= 0.93 || currentFrameRef.current >= 114) {
+        if (progress >= 0.92 || currentFrameRef.current >= 112) {
           heroRef.current.classList.add('visible');
         } else {
           heroRef.current.classList.remove('visible');
@@ -235,13 +266,20 @@ export default function LandingView({ onEnterMission }) {
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);
-      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
   }, [isLoaded]);
 
-  // Auto-Scrub Toggle
+  // Auto-Scroll Toggle Function
   const toggleAutoPlay = () => {
+    // If we were at the end, restart from top
+    if (targetFrameRef.current >= TOTAL_FRAMES - 2) {
+      targetFrameRef.current = 0;
+      currentFrameRef.current = 0;
+    }
     const next = !autoPlay;
     setAutoPlay(next);
     autoPlayRef.current = next;
@@ -330,7 +368,7 @@ export default function LandingView({ onEnterMission }) {
   const loadPercent = Math.min(Math.round((loadedCount / TOTAL_FRAMES) * 100), 100);
 
   return (
-    <div className="earthpulse-landing-wrapper select-none">
+    <div className="earthpulse-landing-wrapper select-none w-screen h-screen overflow-hidden fixed inset-0 z-50 bg-slate-950">
       {/* 1. Background Scanlines & Vignette Overlay */}
       <div className="hud-overlay">
         <div className="vignette" />
@@ -417,21 +455,29 @@ export default function LandingView({ onEnterMission }) {
           </div>
 
           <div className="header-controls flex items-center gap-2">
+            {/* Auto-Scroll Toggle */}
             <button
               onClick={toggleAutoPlay}
-              className={`hud-btn ${autoPlay ? 'active' : ''}`}
-              title="Toggle Auto-Scroll"
+              className={`hud-btn flex items-center gap-1.5 ${autoPlay ? 'active border-cyan-400 bg-cyan-950/80 text-cyan-300' : ''}`}
+              title="Toggle Auto-Scroll Animation"
             >
-              <svg className="icon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                <polygon points="5,3 19,12 5,21" />
+              <svg className={`icon ${autoPlay ? 'animate-pulse text-cyan-400' : ''}`} viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                {autoPlay ? (
+                  <>
+                    <rect x="6" y="4" width="4" height="16" />
+                    <rect x="14" y="4" width="4" height="16" />
+                  </>
+                ) : (
+                  <polygon points="5,3 19,12 5,21" />
+                )}
               </svg>
-              <span className="btn-label">{autoPlay ? 'PAUSE' : 'AUTO-SCRUB'}</span>
+              <span className="btn-label font-mono">{autoPlay ? 'PAUSE AUTO-SCROLL' : 'AUTO-SCROLL'}</span>
             </button>
 
             {/* Direct Skip to Dashboard */}
             <button
               onClick={handleLaunchMission}
-              className="hud-btn border-cyan-500/60 text-cyan-300 hover:bg-cyan-950/80"
+              className="hud-btn border-cyan-500/60 text-cyan-300 hover:bg-cyan-950/80 font-mono"
               title="Direct Access to Globe & Dashboard"
             >
               <span className="btn-label">SKIP TO DASHBOARD ➔</span>
@@ -464,6 +510,22 @@ export default function LandingView({ onEnterMission }) {
             <div className="tracker-thumb" />
           </div>
           <div ref={trackerPercentRef} className="tracker-percent">0%</div>
+        </div>
+
+        {/* Scroll Instruction Cue (Subtle overlay during high altitude) */}
+        <div
+          className={`absolute bottom-8 left-1/2 -translate-x-1/2 z-20 pointer-events-none transition-all duration-700 ${
+            currentFrameNum > 15 || autoPlay ? 'opacity-0 translate-y-3' : 'opacity-100 translate-y-0'
+          }`}
+        >
+          <div className="flex flex-col items-center gap-1.5 px-4 py-2 rounded-full bg-slate-950/70 border border-cyan-800/60 backdrop-blur-md shadow-lg shadow-cyan-950/40">
+            <span className="text-[10px] font-mono tracking-widest text-cyan-400 font-semibold uppercase animate-pulse">
+              Scroll Down to Descend &bull; Or Click [Auto-Scroll] Above
+            </span>
+            <div className="w-4 h-7 rounded-full border border-cyan-400/50 flex items-start justify-center p-0.5">
+              <div className="w-1.5 h-2 rounded-full bg-cyan-400 animate-bounce" />
+            </div>
+          </div>
         </div>
 
         {/* HERO SECTION CENTER PIECE: THE "EARTHPULSE" BUTTON */}
@@ -500,7 +562,7 @@ export default function LandingView({ onEnterMission }) {
                 </svg>
               </span>
             </span>
-            <span className="btn-tag">ENTER GLOBE &amp; DASHBOARD MISSION</span>
+            <span className="btn-tag font-mono">ENTER GLOBE &amp; DASHBOARD MISSION</span>
           </button>
         </div>
 
@@ -512,9 +574,6 @@ export default function LandingView({ onEnterMission }) {
           </div>
         </footer>
       </div>
-
-      {/* Deep Scroll Track to give room for smooth frame scrubbing */}
-      <div className="scroll-track" />
     </div>
   );
 }
