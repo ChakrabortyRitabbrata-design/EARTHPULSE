@@ -71,25 +71,14 @@ export default function App() {
   const [thermalLayerVisible, setThermalLayerVisible] = useState(true);
   const [showQueryBuilder, setShowQueryBuilder] = useState(true);
 
-  // 4K Orbital Scrollytelling Landing Page State
-  const [showLanding, setShowLanding] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('view') === 'dashboard' || window.location.hash === '#dashboard') {
-        return false;
-      }
-    }
-    return true; // Default view is the Landing Page
-  });
+  // 4K Orbital Scrollytelling Landing Page State (Always occurs on page refresh / initial load)
+  const [showLanding, setShowLanding] = useState(true);
 
   if (showLanding) {
     return (
       <LandingView
         onEnterMission={() => {
           setShowLanding(false);
-          if (typeof window !== 'undefined') {
-            window.history.replaceState(null, '', '#dashboard');
-          }
         }}
       />
     );
@@ -109,12 +98,7 @@ export default function App() {
         backendConnected={backendConnected}
         isRefreshing={isWorkflowRunning}
         onRefresh={refreshAll}
-        onOpenLanding={() => {
-          setShowLanding(true);
-          if (typeof window !== 'undefined') {
-            window.history.replaceState(null, '', window.location.pathname);
-          }
-        }}
+        onOpenLanding={() => setShowLanding(true)}
       />
 
       {/* 2. Quick-Jump Geographical Navigation Strip */}
