@@ -52,3 +52,6 @@ http://localhost:3000
 - `server.js` - Lightweight Node.js static HTTP server with proper MIME types.
 - `frames_hd/` - 122 high-definition 1080p master frame assets (`frame_001.jpg` to `frame_122.jpg`).
 - `WhatsApp_Video_2026-11-15_at_11_11_44_frames/` - Original extracted source frames.
+
+
+To know about EARTHPLUS...Go to EARTHPLUS folder!!!!!
