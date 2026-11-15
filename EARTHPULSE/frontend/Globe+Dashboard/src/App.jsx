@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import './App.css';
 import Header from './components/Header';
+import LandingView from './components/LandingView';
 import QuickJumpNav from './components/QuickJumpNav';
 import MapLegend from './components/MapLegend';
 import EarthGlobe from './globe/EarthGlobe';
@@ -69,6 +70,30 @@ export default function App() {
   const [thermalLayerVisible, setThermalLayerVisible] = useState(true);
   const [showQueryBuilder, setShowQueryBuilder] = useState(false);
 
+  // 4K Orbital Scrollytelling Landing Page State
+  const [showLanding, setShowLanding] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('view') === 'dashboard' || window.location.hash === '#dashboard') {
+        return false;
+      }
+    }
+    return true; // Default view is the Landing Page
+  });
+
+  if (showLanding) {
+    return (
+      <LandingView
+        onEnterMission={() => {
+          setShowLanding(false);
+          if (typeof window !== 'undefined') {
+            window.history.replaceState(null, '', '#dashboard');
+          }
+        }}
+      />
+    );
+  }
+
   return (
     <div className="app-container w-screen h-screen flex flex-col bg-slate-950 text-slate-100 overflow-hidden font-sans">
       {/* 1. Tactical Command Header */}
@@ -83,6 +108,12 @@ export default function App() {
         backendConnected={backendConnected}
         isRefreshing={isWorkflowRunning}
         onRefresh={refreshAll}
+        onOpenLanding={() => {
+          setShowLanding(true);
+          if (typeof window !== 'undefined') {
+            window.history.replaceState(null, '', window.location.pathname);
+          }
+        }}
       />
 
       {/* 2. Quick-Jump Geographical Navigation Strip */}

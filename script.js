@@ -384,10 +384,10 @@
   earthPulseBtn.addEventListener('click', (e) => {
     e.preventDefault();
 
-    // Trigger futuristic hyperspace warp jump, then transition to blank page!
+    // Trigger futuristic hyperspace warp jump, then redirect to globe/dashboard!
     triggerWarpJump(() => {
-      const target = earthPulseBtn.getAttribute('href') || 'about:blank';
-      window.open(target, '_blank', 'noopener,noreferrer');
+      const target = earthPulseBtn.getAttribute('href') || 'http://127.0.0.1:5173';
+      window.location.href = target;
     });
   });
 

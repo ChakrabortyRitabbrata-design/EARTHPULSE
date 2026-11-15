@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, Flame, Mountain, Sparkles, Layers, RefreshCw, Radio } from 'lucide-react';
+import { Activity, Flame, Mountain, Sparkles, Layers, RefreshCw, Radio, Rocket } from 'lucide-react';
 
 export default function Header({
   activeView,
@@ -9,19 +9,28 @@ export default function Header({
   backendConnected,
   isRefreshing,
   onRefresh,
+  onOpenLanding,
 }) {
   return (
     <header className="h-16 bg-slate-950/95 backdrop-blur-md border-b border-slate-800/80 px-4 flex items-center justify-between select-none z-30 shrink-0">
       {/* Brand & Mission Badge */}
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-700 flex items-center justify-center shadow-lg shadow-cyan-500/25 border border-cyan-400/40">
+        <button
+          onClick={onOpenLanding}
+          className="w-9 h-9 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-700 flex items-center justify-center shadow-lg shadow-cyan-500/25 border border-cyan-400/40 hover:scale-105 transition-transform"
+          title="Return to 4K Orbital Scrollytelling Experience"
+        >
           <Activity className="w-5 h-5 text-white animate-pulse" />
-        </div>
+        </button>
         <div>
           <div className="flex items-center gap-2">
-            <span className="font-extrabold tracking-widest text-base bg-gradient-to-r from-cyan-400 via-blue-200 to-indigo-300 bg-clip-text text-transparent">
+            <button
+              onClick={onOpenLanding}
+              className="font-extrabold tracking-widest text-base bg-gradient-to-r from-cyan-400 via-blue-200 to-indigo-300 bg-clip-text text-transparent hover:opacity-80 transition-opacity text-left"
+              title="Return to 4K Orbital Scrollytelling Experience"
+            >
               EARTHPULSE
-            </span>
+            </button>
             <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-950/80 text-cyan-400 border border-cyan-800/60 font-semibold tracking-wider">
               GEOSPATIAL CORE
             </span>
@@ -38,6 +47,18 @@ export default function Header({
 
       {/* Main Navigation Modes */}
       <nav className="flex items-center gap-1.5 bg-slate-900/80 p-1 rounded-lg border border-slate-800">
+        {/* Orbital Descent Intro */}
+        {onOpenLanding && (
+          <button
+            onClick={onOpenLanding}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-cyan-400 hover:text-cyan-200 hover:bg-cyan-950/50 border border-cyan-800/50 transition-all"
+            title="Return to 4K Orbital Descent Scrollytelling"
+          >
+            <Rocket className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+            <span className="hidden sm:inline font-mono">Orbital Intro</span>
+          </button>
+        )}
+
         {/* Globe & Dashboard */}
         <button
           onClick={() => {
