@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EARTHPULSE // 4K Orbital Scrollytelling Experience</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,300;0,500;0,700;1,400&family=Orbitron:wght@400;600;800;900&family=Space+Grotesk:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Background Scanlines & Vignette -->
+  <div class="hud-overlay">
+    <div class="vignette"></div>
+    <div class="hud-corners">
+      <div class="corner top-left"></div>
+      <div class="corner top-right"></div>
+      <div class="corner bottom-left"></div>
+      <div class="corner bottom-right"></div>
+    </div>
+  </div>
+
+  <!-- Preloader Screen -->
+  <div id="preloader" class="preloader">
+    <div class="preloader-content">
+      <div class="nasa-insignia">
+        <div class="ring-pulse"></div>
+        <div class="ring-pulse delayed"></div>
+        <div class="insignia-center">
+          <svg viewBox="0 0 24 24" width="40" height="40" stroke="currentColor" fill="none" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10" stroke="#00f0ff" stroke-opacity="0.8"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="#38bdf8"/>
+            <path d="M2 12h20" stroke="#00f0ff"/>
+            <circle cx="12" cy="12" r="3" fill="#00f0ff" />
+          </svg>
+        </div>
+      </div>
+      <h2 class="preloader-title">EARTHPULSE // MISSION SYSTEM</h2>
+      <p class="preloader-sub">CALIBRATING 4K ULTRA-HD FRAME SEQUENCE BUFFER</p>
+      
+      <div class="progress-bar-container">
+        <div id="progressBar" class="progress-bar-fill"></div>
+      </div>
+      
+      <div class="preloader-stats">
+        <span id="loadPercent">0%</span>
+        <span id="frameCounter">0 / 122 FRAMES</span>
+        <span class="status-indicator"><span class="blink-dot"></span>SYNCING</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Warp Jump Hyperspace Transition Canvas -->
+  <canvas id="warpCanvas" class="warp-canvas"></canvas>
+
+  <!-- Sticky Visual Viewport containing 4K Canvas and HUD -->
+  <div class="viewport-sticky">
+    <!-- Main 4K Photoframe Canvas -->
+    <canvas id="frameCanvas"></canvas>
+    <!-- Seamless Pure White Background Transition for the Final Screen -->
+    <div id="whiteoutOverlay" class="whiteout-overlay"></div>
+
+    <!-- Header Navigation & Telemetry -->
+    <header class="hud-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <span class="live-beacon"></span>
+        </div>
+        <div class="brand-text">
+          <span class="brand-subtitle">NASA // DEEP SPACE DESCENT 4K</span>
+        </div>
+      </div>
+
+      <div class="header-center-telemetry">
+        <div class="telemetry-chip">
+          <span class="lbl">STAGE</span>
+          <span id="teleStage" class="val">DEEP SPACE</span>
+        </div>
+        <div class="telemetry-chip">
+          <span class="lbl">ALTITUDE</span>
+          <span id="teleAlt" class="val">36,000 KM</span>
+        </div>
+        <div class="telemetry-chip">
+          <span class="lbl">VELOCITY</span>
+          <span id="teleVel" class="val">27,650 KM/H</span>
+        </div>
+        <div class="telemetry-chip hidden-mobile">
+          <span class="lbl">BUFFER</span>
+          <span class="val highlight">4K UHD</span>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <button id="autoPlayBtn" class="hud-btn" title="Toggle Auto-Scroll">
+          <svg class="icon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <polygon points="5,3 19,12 5,21"></polygon>
+          </svg>
+          <span class="btn-label">AUTO-SCRUB</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Side Coordinates and Progress HUD -->
+    <div class="side-hud side-hud-left">
+      <div class="side-line"></div>
+      <div class="hud-data-block">
+        <span class="data-key">LAT:</span>
+        <span id="coordLat" class="data-val">00° 00' 00" N</span>
+      </div>
+      <div class="hud-data-block">
+        <span class="data-key">LON:</span>
+        <span id="coordLon" class="data-val">00° 00' 00" W</span>
+      </div>
+      <div class="hud-data-block">
+        <span class="data-key">TIME:</span>
+        <span id="missionTime" class="data-val">T+00:00:00</span>
+      </div>
+    </div>
+
+    <div class="side-hud side-hud-right">
+      <div class="scroll-tracker-label">SEQUENCE PROGRESS</div>
+      <div class="tracker-track">
+        <div id="trackerFill" class="tracker-fill"></div>
+        <div id="trackerThumb" class="tracker-thumb"></div>
+      </div>
+      <div id="trackerPercent" class="tracker-percent">0%</div>
+    </div>
+
+
+    <!-- HERO SECTION CENTER PIECE: THE "EARTHPULSE" BUTTON -->
+    <div id="heroCenterPiece" class="hero-centerpiece">
+      <div class="pulse-aura-container">
+        <div class="radar-scan"></div>
+        <div class="orbital-ring ring-1"></div>
+        <div class="orbital-ring ring-2"></div>
+        <div class="orbital-ring ring-3"></div>
+      </div>
+
+      <!-- MAIN REQUIRED BUTTON -->
+      <a href="about:blank" target="_blank" rel="noopener noreferrer" id="earthPulseBtn" class="earthpulse-button" data-dest="about:blank">
+        <div class="btn-space-bg">
+          <div class="space-nebula"></div>
+          <div class="space-stars stars-sm"></div>
+          <div class="space-stars stars-md"></div>
+          <div class="space-stars stars-lg"></div>
+          <div class="space-shooting-star"></div>
+        </div>
+        <span class="btn-border-glow"></span>
+        <span class="btn-sheen"></span>
+        <span class="btn-content">
+          <span class="btn-text">EARTHPULSE</span>
+          <span class="btn-arrow">
+            <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </span>
+        </span>
+        <span class="btn-tag">PROCEED TO NEXT WEBSITE</span>
+      </a>
+    </div>
+
+    <!-- Bottom HUD Ticker -->
+    <footer class="hud-footer">
+      <div class="footer-left"></div>
+      <div class="footer-right">
+        <span>MISSION EP-4K // SYSTEM ARCHITECTURE 2026</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Deep Scroll Track to give room for silky smooth frame scrubbing -->
+  <div id="scrollTrack" class="scroll-track"></div>
+
+
+
+  <script src="script.js"></script>
+</body>
+</html>
