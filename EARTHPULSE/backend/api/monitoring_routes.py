@@ -10,6 +10,8 @@ router = APIRouter(tags=["Monitoring & Quality"])
 
 
 @router.get("/health")
+@router.get("/api/health")
+@router.get("/api/v1/health")
 def health_check():
     """Returns system status, active environment, and data readiness."""
     data_dir_exists = settings.DATA_DIR.exists()

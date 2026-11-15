@@ -141,7 +141,7 @@ export default function Header({
               ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800/60'
               : 'bg-rose-950/40 text-rose-400 border-rose-800/60'
           }`}
-          title={backendConnected ? 'FastAPI Backend Online at 127.0.0.1:8000' : 'FastAPI Backend Offline'}
+          title={backendConnected ? 'FastAPI Backend Online & Synchronized' : 'FastAPI Backend Offline'}
         >
           <span
             className={`w-2 h-2 rounded-full ${

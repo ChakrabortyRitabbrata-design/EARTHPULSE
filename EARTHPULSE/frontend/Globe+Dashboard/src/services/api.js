@@ -1,12 +1,39 @@
 /**
  * EARTHPULSE - Centralized Geospatial & Analytical API Client
- * Synchronizes with FastAPI backend at VITE_API_BASE_URL (default: http://127.0.0.1:8000)
+ * Dynamically resolves API base URL across local development, Vercel Multi-Service deployments,
+ * and internal service bindings.
  */
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+const getBaseUrl = () => {
+  // 1. Explicit Vite client-side environment variable (e.g. build-time or .env)
+  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+  // 2. Bound runtime service variable if running in SSR / serverless Node context (Vercel Service Binding)
+  if (typeof process !== 'undefined' && process.env?.BACKEND_URL) {
+    return process.env.BACKEND_URL;
+  }
+  // 3. In production on Vercel with top-level rewrites, use same-origin relative URLs ("")
+  if (typeof import.meta !== 'undefined' && import.meta.env?.PROD) {
+    return '';
+  }
+  // 4. Default for standalone local Vite development
+  return 'http://127.0.0.1:8000';
+};
+
+const BASE_URL = getBaseUrl();
 
 async function fetchJSON(endpoint, options = {}) {
-  const url = `${BASE_URL}${endpoint}`;
+  let url;
+  if (!BASE_URL) {
+    url = endpoint;
+  } else if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
+    url = endpoint;
+  } else {
+    const cleanBase = BASE_URL.endsWith('/') ? BASE_URL.slice(0, -1) : BASE_URL;
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    url = `${cleanBase}${cleanEndpoint}`;
+  }
   try {
     const res = await fetch(url, {
       headers: {
