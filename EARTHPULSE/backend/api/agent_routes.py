@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Query
 from backend.agent.workflow import run_glacier_agent
 from backend.schemas.analysis import AgentQueryRequest, AgentAnalysisResponse
 from backend.schemas.glacier import PaginatedGlaciers, GlacierDetail
-from backend.tools.retrieve_satellite_data import get_glaciers_metadata, get_glacier_by_id
+from backend.tools.retrieve_satellite_data import get_glaciers_metadata, get_glacier_by_id, get_regional_glacier_stats
 
 router = APIRouter(prefix="/api/v1", tags=["Agent & Glaciers"])
 
@@ -38,6 +38,14 @@ def list_glaciers(
     """Lists glaciers from the global WGMS registry with optional filtering and pagination."""
     res = get_glaciers_metadata(country=country, query=query, limit=limit, offset=offset)
     return res
+
+
+@router.get("/glaciers/regional-stats")
+def get_glaciers_regional_stats(
+    country: Optional[str] = Query(None, description="2-letter ISO country code (e.g. 'CH', 'NO')")
+):
+    """Returns regional mass balance deficit rates, terminus retreat distributions, and benchmark glaciers."""
+    return get_regional_glacier_stats(country=country)
 
 
 @router.get("/glaciers/{glacier_id}", response_model=GlacierDetail)

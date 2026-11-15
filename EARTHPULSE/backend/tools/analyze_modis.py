@@ -122,6 +122,21 @@ def compute_thermal_analysis(df: pd.DataFrame) -> Dict[str, Any]:
     thermal: Dict[str, Any] = {}
 
     if not frp_s.empty:
+        tot_frp = len(frp_s)
+        crit_c = int((frp_s >= 50.0).sum())
+        high_c = int(((frp_s >= 20.0) & (frp_s < 50.0)).sum())
+        mod_c = int(((frp_s >= 10.0) & (frp_s < 20.0)).sum())
+        low_c = int((frp_s < 10.0).sum())
+        thermal["severity_tiers"] = {
+            "critical_count": crit_c,
+            "critical_percentage": round(crit_c / tot_frp * 100.0, 1) if tot_frp else 0.0,
+            "high_count": high_c,
+            "high_percentage": round(high_c / tot_frp * 100.0, 1) if tot_frp else 0.0,
+            "moderate_count": mod_c,
+            "moderate_percentage": round(mod_c / tot_frp * 100.0, 1) if tot_frp else 0.0,
+            "low_count": low_c,
+            "low_percentage": round(low_c / tot_frp * 100.0, 1) if tot_frp else 0.0,
+        }
         thermal["frp_stats_mw"] = {
             "mean": round(float(frp_s.mean()), 2),
             "median": round(float(frp_s.median()), 2),

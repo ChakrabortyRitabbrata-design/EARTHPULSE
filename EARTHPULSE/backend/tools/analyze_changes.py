@@ -31,8 +31,12 @@ def validate_dataset_records(
     df = pd.DataFrame(records)
     issues = []
 
-    # Check duplicates
-    dup_count = int(df.duplicated().sum())
+    # Check duplicates safely (ignoring unhashable nested dicts/lists)
+    try:
+        hashable_cols = [c for c in df.columns if not df[c].apply(lambda x: isinstance(x, (dict, list))).any()]
+        dup_count = int(df.duplicated(subset=hashable_cols).sum()) if hashable_cols else 0
+    except Exception:
+        dup_count = 0
     if dup_count > 0:
         issues.append(f"Found {dup_count} duplicate records.")
 

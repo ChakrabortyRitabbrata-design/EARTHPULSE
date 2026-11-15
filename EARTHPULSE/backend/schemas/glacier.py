@@ -18,11 +18,16 @@ class GlacierSummary(BaseModel):
 
 
 class GlacierDetail(GlacierSummary):
+    elevation: Optional[float] = None
+    length: Optional[float] = None
+    area: Optional[float] = None
     wgi_id: Optional[str] = None
     parent_glacier_id: Optional[float] = None
     references: Optional[str] = None
     remarks: Optional[str] = None
     observation_summary: Optional[dict[str, Any]] = None
+    mass_balance_series: Optional[List[dict[str, Any]]] = None
+    front_variation_series: Optional[List[dict[str, Any]]] = None
 
 
 class PaginatedGlaciers(BaseModel):

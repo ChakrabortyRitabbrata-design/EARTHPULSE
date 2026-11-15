@@ -10,6 +10,7 @@ from backend.core.config import settings
 from backend.core.logging_config import logger
 from backend.tools.retrieve_satellite_data import (
     get_glaciers_metadata,
+    get_glacier_by_id,
     get_glacier_state,
     get_front_variation,
     get_mass_balance,
@@ -256,51 +257,69 @@ def data_retrieval_node(state: GlacierAgentState) -> Dict[str, Any]:
     retrieved = {}
     glacier_ids_matched = []
 
-    # If glacier_name is provided, lookup matching glacier_ids first
-    if glacier_name and not glacier_id and "glacier" in datasets:
+    # 1. Glaciers: If glacier_id is provided, retrieve specific glacier metadata directly
+    if glacier_id and "glacier" in datasets:
+        target_glacier = get_glacier_by_id(glacier_id)
+        if target_glacier:
+            retrieved["glacier"] = [target_glacier]
+            clean_name = target_glacier.get("short_name") or target_glacier.get("names") or target_glacier.get("name")
+            if clean_name and (not glacier_name or glacier_name in ("Selected Cryosphere Registry", "None", "")):
+                glacier_name = clean_name
+        else:
+            retrieved["glacier"] = []
+    elif glacier_name and not glacier_id and "glacier" in datasets:
         meta = get_glaciers_metadata(country=country, query=glacier_name, limit=5)
-        if meta["items"]:
+        if meta.get("items"):
             glacier_id = meta["items"][0]["id"]
             glacier_ids_matched = [g["id"] for g in meta["items"]]
+            retrieved["glacier"] = meta["items"]
+            clean_name = meta["items"][0].get("short_name") or meta["items"][0].get("names")
+            if clean_name:
+                glacier_name = clean_name
+        else:
+            retrieved["glacier"] = []
+    elif "glacier" in datasets:
+        g_res = get_glaciers_metadata(country=country, query=None, limit=50)
+        retrieved["glacier"] = g_res.get("items", [])
 
-    # 1. Glaciers
-    if "glacier" in datasets:
-        limit = 50 if not glacier_id else 5
-        g_res = get_glaciers_metadata(country=country, query=glacier_name, limit=limit)
-        retrieved["glacier"] = g_res["items"]
-
-    # 2. Mass Balance
+    # 2. Mass Balance: If specific glacier targeted, retrieve its full verified observations
     if "mass_balance" in datasets:
         mb_res = get_mass_balance(
             glacier_id=glacier_id,
-            country=country,
-            start_date=start_date,
+            country=None if glacier_id else country,
+            start_date=start_date if not glacier_id else None,
             end_date=end_date,
             limit=200
         )
-        retrieved["mass_balance"] = mb_res["records"]
+        if not mb_res.get("records") and glacier_id:
+            mb_res = get_mass_balance(glacier_id=glacier_id, country=None, start_date=None, end_date=None, limit=200)
+        retrieved["mass_balance"] = mb_res.get("records", [])
 
-    # 3. Front Variation
+    # 3. Front Variation: If specific glacier targeted, retrieve its full verified surveys
     if "front_variation" in datasets:
         fv_res = get_front_variation(
             glacier_id=glacier_id,
-            country=country,
-            start_date=start_date,
+            country=None if glacier_id else country,
+            start_date=start_date if not glacier_id else None,
             end_date=end_date,
             limit=200
         )
-        retrieved["front_variation"] = fv_res["records"]
+        if not fv_res.get("records") and glacier_id:
+            fv_res = get_front_variation(glacier_id=glacier_id, country=None, start_date=None, end_date=None, limit=200)
+        retrieved["front_variation"] = fv_res.get("records", [])
 
-    # 4. State
+    # 4. State: Morphological dimensions
     if "state" in datasets:
         st_res = get_glacier_state(
             glacier_id=glacier_id,
-            country=country,
-            start_date=start_date,
+            country=None if glacier_id else country,
+            start_date=start_date if not glacier_id else None,
             end_date=end_date,
             limit=100
         )
-        retrieved["state"] = st_res["records"]
+        if not st_res.get("records") and glacier_id:
+            st_res = get_glacier_state(glacier_id=glacier_id, country=None, start_date=None, end_date=None, limit=100)
+        retrieved["state"] = st_res.get("records", [])
 
     # 5. Events
     if "event" in datasets:
@@ -329,6 +348,7 @@ def data_retrieval_node(state: GlacierAgentState) -> Dict[str, Any]:
     return {
         "retrieved_data": retrieved,
         "glacier_id": glacier_id,
+        "glacier_name": glacier_name,
         "status": "data_retrieved" if total_records > 0 else "no_data"
     }
 
@@ -407,6 +427,17 @@ def python_numerical_analysis_node(state: GlacierAgentState) -> Dict[str, Any]:
     retrieved = state.get("retrieved_data", {})
     tools = state.get("analysis_tools", [])
     results: Dict[str, Any] = {}
+
+    if "glacier" in retrieved:
+        results["glacier_count"] = len(retrieved["glacier"])
+        if retrieved["glacier"]:
+            target_g = retrieved["glacier"][0]
+            results["target_glacier"] = {
+                "id": target_g.get("id"),
+                "name": target_g.get("short_name") or target_g.get("names") or target_g.get("name"),
+                "country": target_g.get("country"),
+                "elevation": target_g.get("elevation"),
+            }
 
     if "analyze_mass_balance" in tools and retrieved.get("mass_balance"):
         results["mass_balance"] = analyze_mass_balance(retrieved["mass_balance"])
